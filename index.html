@@ -2,23 +2,25 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Login Guru</title>
+  <title>Register</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="flex items-center justify-center h-screen bg-gray-100">
   <div class="bg-white p-6 rounded-lg shadow-md w-96">
-    <h1 class="text-xl font-bold mb-4 text-center">Login</h1>
-    <form id="loginForm" class="space-y-4">
+    <h1 class="text-xl font-bold mb-4 text-center">Register</h1>
+    <form id="registerForm" class="space-y-4">
+      <input type="text" id="name" placeholder="Nama" class="w-full border p-2 rounded" required>
       <input type="email" id="email" placeholder="Email" class="w-full border p-2 rounded" required>
       <input type="password" id="password" placeholder="Password" class="w-full border p-2 rounded" required>
-      <button type="submit" class="w-full bg-teal-600 text-white p-2 rounded">Login</button>
+      <button type="submit" class="w-full bg-teal-600 text-white p-2 rounded">Daftar</button>
     </form>
     <p id="errorMsg" class="text-red-500 text-sm mt-3"></p>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = { 
       apiKey: "AIzaSyAJ5I8k2MzAyDLt9fUcXHRNtRVjKB_ETLY",
@@ -31,23 +33,31 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    // Login submit
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    // Register submit
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const name = document.getElementById("name").value;
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
+
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Simpan data user ke Firestore dengan role default = "siswa"
+        await setDoc(doc(db, "users", user.uid), {
+          name: name,
+          email: email,
+          role: "siswa",
+          createdAt: new Date()
+        });
+
+        alert("Registrasi berhasil! Silakan login.");
+        window.location.href = "login.html";
       } catch (error) {
         document.getElementById("errorMsg").textContent = error.message;
-      }
-    });
-
-    // Kalau sudah login, redirect ke dashboard
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        window.location.href = "dashboard.html"; 
       }
     });
   </script>
