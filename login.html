@@ -1,82 +1,36 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <title>Login</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="flex items-center justify-center h-screen bg-gray-100">
-  <div class="bg-white p-6 rounded-lg shadow-md w-96">
-    <h1 class="text-xl font-bold mb-4 text-center">Login</h1>
-    <form id="loginForm" class="space-y-4">
-      <input type="email" id="email" placeholder="Email" class="w-full border p-2 rounded" required>
-      <input type="password" id="password" placeholder="Password" class="w-full border p-2 rounded" required>
-      <button type="submit" class="w-full bg-teal-600 text-white p-2 rounded">Login</button>
-    </form>
-    <p id="errorMsg" class="text-red-500 text-sm mt-3"></p>
-  </div>
+<form id="loginForm">
+  <input type="email" id="email" placeholder="Email" required>
+  <input type="password" id="password" placeholder="Password" required>
+  <button type="submit">Login</button>
+</form>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<button id="logoutBtn">Logout</button>
 
-    const firebaseConfig = { 
-      apiKey: "AIzaSyAJ5I8k2MzAyDLt9fUcXHRNtRVjKB_ETLY",
-      authDomain: "projectid-81104.firebaseapp.com",
-      projectId: "projectid-81104",
-      storageBucket: "projectid-81104.appspot.com",
-      messagingSenderId: "554913260457",
-      appId: "1:554913260457:web:bf988867ebfd902c651ab8"
-    };
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  const firebaseConfig = { /* ... config kamu ... */ };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
 
-    const loginForm = document.getElementById("loginForm");
-    const errorMsg = document.getElementById("errorMsg");
+  // Login
+  const loginForm = document.getElementById("loginForm");
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      alert("Login berhasil sebagai " + userCredential.user.email);
+    } catch (error) {
+      alert("Login gagal: " + error.message);
+    }
+  });
 
-    // Submit login
-    loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      errorMsg.textContent = "";
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // Ambil role user dari Firestore
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.role === "guru") {
-            window.location.href = "dashboard.html"; // redirect ke dashboard guru
-          } else {
-            alert("Akun kamu belum diapprove sebagai guru.");
-          }
-        } else {
-          alert("Data user tidak ditemukan.");
-        }
-      } catch (error) {
-        errorMsg.textContent = error.message;
-      }
-    });
-
-    // Cek kalau user sudah login
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().role === "guru") {
-          window.location.href = "dashboard.html";
-        }
-      }
-    });
-  </script>
-</body>
-</html>
+  // Logout
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await signOut(auth);
+    alert("Berhasil logout");
+  });
+</script>
