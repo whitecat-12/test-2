@@ -5,52 +5,53 @@
   <title>Dashboard Guru - Firebase</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6">
-  <div class="max-w-2xl mx-auto bg-white shadow-lg rounded-xl p-6">
-    <h1 class="text-xl font-bold text-center mb-4">Dashboard Guru - Upload Soal</h1>
+<body class="bg-gray-100 min-h-screen p-6">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-center mb-6">Dashboard Guru - Upload Soal</h1>
 
     <!-- Form input soal -->
-    <form id="soalForm" class="space-y-4">
-      <input type="hidden" id="soalId"> <!-- Untuk edit soal -->
-      <div>
-        <label class="block font-semibold">Pertanyaan:</label>
-        <textarea id="pertanyaan" class="w-full border p-2 rounded" required></textarea>
-      </div>
-      <div>
-        <label class="block font-semibold">Opsi Jawaban:</label>
-        <input type="text" id="opsiA" placeholder="A" class="w-full border p-2 rounded mb-2" required>
-        <input type="text" id="opsiB" placeholder="B" class="w-full border p-2 rounded mb-2" required>
-        <input type="text" id="opsiC" placeholder="C" class="w-full border p-2 rounded mb-2" required>
-        <input type="text" id="opsiD" placeholder="D" class="w-full border p-2 rounded mb-2" required>
-      </div>
-      <div>
-        <label class="block font-semibold">Jawaban Benar:</label>
-        <select id="jawaban" class="w-full border p-2 rounded">
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="C">C</option>
-          <option value="D">D</option>
-        </select>
-      </div>
-      <div>
-        <label class="block font-semibold">Penjelasan:</label>
-        <textarea id="penjelasan" class="w-full border p-2 rounded"></textarea>
-      </div>
-      <button type="submit" class="w-full bg-teal-600 text-white p-3 rounded-lg">Simpan Soal</button>
-    </form>
-
-    <!-- List soal -->
-    <div class="mt-6">
-      <h2 class="font-bold text-lg mb-2">Daftar Soal</h2>
-      <ul id="daftarSoal" class="list-disc pl-6 space-y-2"></ul>
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+      <form id="soalForm" class="space-y-4">
+        <input type="hidden" id="soalId">
+        <div>
+          <label class="block font-semibold mb-1">Pertanyaan:</label>
+          <textarea id="pertanyaan" class="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400" required></textarea>
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">Opsi Jawaban:</label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <input type="text" id="opsiA" placeholder="A" class="border p-2 rounded" required>
+            <input type="text" id="opsiB" placeholder="B" class="border p-2 rounded" required>
+            <input type="text" id="opsiC" placeholder="C" class="border p-2 rounded" required>
+            <input type="text" id="opsiD" placeholder="D" class="border p-2 rounded" required>
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">Jawaban Benar:</label>
+          <select id="jawaban" class="w-full border p-2 rounded">
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">Penjelasan:</label>
+          <textarea id="penjelasan" class="w-full border p-3 rounded-lg"></textarea>
+        </div>
+        <button type="submit" class="w-full bg-teal-600 text-white p-3 rounded-lg hover:bg-teal-700 transition">Simpan Soal</button>
+      </form>
     </div>
 
-    <button id="logoutBtn" class="mt-6 w-full bg-red-500 text-white p-2 rounded">Logout</button>
+    <!-- Daftar soal -->
+    <div id="daftarSoal" class="space-y-4"></div>
+
+    <button id="logoutBtn" class="mt-6 w-full bg-red-500 text-white p-3 rounded-lg hover:bg-red-600 transition">Logout</button>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -71,21 +72,15 @@
     const daftarSoal = document.getElementById('daftarSoal');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // Cek login
     onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        alert("Harus login dulu!");
-        window.location.href = "login.html";
-      }
+      if (!user) window.location.href = "login.html";
     });
 
-    // Logout
     logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
       window.location.href = "login.html";
     });
 
-    // Simpan / Edit soal
     soalForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const soalId = document.getElementById("soalId").value;
@@ -102,10 +97,8 @@
       };
 
       if (soalId) {
-        // Edit soal
         await updateDoc(doc(db, "soal", soalId), soalData);
       } else {
-        // Tambah soal baru
         await addDoc(collection(db, "soal"), soalData);
       }
 
@@ -114,53 +107,50 @@
       loadSoal();
     });
 
-    // Ambil soal dari Firestore
     async function loadSoal() {
       daftarSoal.innerHTML = "";
       const snapshot = await getDocs(collection(db, "soal"));
-      snapshot.forEach((docSnap) => {
+
+      snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        const li = document.createElement("li");
-        li.classList.add("flex", "justify-between", "items-center");
+        const li = document.createElement("div");
+        li.className = "bg-white p-4 rounded-xl shadow hover:shadow-lg transition flex flex-col md:flex-row md:justify-between md:items-center";
+
         li.innerHTML = `
-          <span>${data.pertanyaan} (Jawaban: ${data.jawaban})</span>
-          <span class="space-x-2">
-            <button data-id="${docSnap.id}" class="editBtn bg-blue-500 text-white px-2 py-1 rounded">Edit</button>
-            <button data-id="${docSnap.id}" class="deleteBtn bg-red-500 text-white px-2 py-1 rounded">Hapus</button>
-          </span>
+          <div>
+            <p class="font-semibold mb-1">${data.pertanyaan}</p>
+            <p class="text-gray-600 text-sm">Jawaban: ${data.jawaban}</p>
+          </div>
+          <div class="mt-2 md:mt-0 space-x-2">
+            <button data-id="${docSnap.id}" class="editBtn bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition">Edit</button>
+            <button data-id="${docSnap.id}" class="deleteBtn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition">Hapus</button>
+          </div>
         `;
         daftarSoal.appendChild(li);
       });
 
-      // Event edit
       document.querySelectorAll(".editBtn").forEach(btn => {
         btn.addEventListener("click", async () => {
           const docId = btn.dataset.id;
-          const docRef = doc(db, "soal", docId);
-          const docSnap = await getDocs(collection(db, "soal"));
-          const docData = (await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")).doc(db, "soal", docId)
-          // ambil data soal untuk form
-          const snapshot = await getDocs(collection(db, "soal"));
-          const data = (await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")).getDoc(docRef);
-          data.then(d => {
-            if(d.exists()){
-              document.getElementById("soalId").value = docId;
-              document.getElementById("pertanyaan").value = d.data().pertanyaan;
-              document.getElementById("opsiA").value = d.data().opsi.A;
-              document.getElementById("opsiB").value = d.data().opsi.B;
-              document.getElementById("opsiC").value = d.data().opsi.C;
-              document.getElementById("opsiD").value = d.data().opsi.D;
-              document.getElementById("jawaban").value = d.data().jawaban;
-              document.getElementById("penjelasan").value = d.data().penjelasan;
-            }
-          });
+          const docSnap = await getDoc(doc(db, "soal", docId));
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            document.getElementById("soalId").value = docId;
+            document.getElementById("pertanyaan").value = data.pertanyaan;
+            document.getElementById("opsiA").value = data.opsi.A;
+            document.getElementById("opsiB").value = data.opsi.B;
+            document.getElementById("opsiC").value = data.opsi.C;
+            document.getElementById("opsiD").value = data.opsi.D;
+            document.getElementById("jawaban").value = data.jawaban;
+            document.getElementById("penjelasan").value = data.penjelasan;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         });
       });
 
-      // Event hapus
       document.querySelectorAll(".deleteBtn").forEach(btn => {
         btn.addEventListener("click", async () => {
-          if(confirm("Yakin ingin menghapus soal ini?")){
+          if (confirm("Yakin ingin menghapus soal ini?")) {
             await deleteDoc(doc(db, "soal", btn.dataset.id));
             loadSoal();
           }
