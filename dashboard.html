@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -11,6 +11,7 @@
 
     <!-- Form input soal -->
     <form id="soalForm" class="space-y-4">
+      <input type="hidden" id="soalId"> <!-- Untuk edit soal -->
       <div>
         <label class="block font-semibold">Pertanyaan:</label>
         <textarea id="pertanyaan" class="w-full border p-2 rounded" required></textarea>
@@ -48,12 +49,10 @@
   </div>
 
   <script type="module">
-    // ✅ Import Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // ✅ Konfigurasi Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAJ5I8k2MzAyDLt9fUcXHRNtRVjKB_ETLY",
       authDomain: "projectid-81104.firebaseapp.com",
@@ -63,7 +62,7 @@
       appId: "1:554913260457:web:bf988867ebfd902c651ab8",
       measurementId: "G-8WFHQW5WGN"
     };
-    
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
@@ -72,7 +71,7 @@
     const daftarSoal = document.getElementById('daftarSoal');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // ✅ Cek user login
+    // Cek login
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         alert("Harus login dulu!");
@@ -80,16 +79,17 @@
       }
     });
 
-    // ✅ Logout
+    // Logout
     logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
       window.location.href = "login.html";
     });
 
-    // ✅ Tambahkan soal ke Firestore
+    // Simpan / Edit soal
     soalForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const soal = {
+      const soalId = document.getElementById("soalId").value;
+      const soalData = {
         pertanyaan: document.getElementById("pertanyaan").value,
         opsi: {
           A: document.getElementById("opsiA").value,
@@ -101,20 +101,70 @@
         penjelasan: document.getElementById("penjelasan").value
       };
 
-      await addDoc(collection(db, "soal"), soal);
+      if (soalId) {
+        // Edit soal
+        await updateDoc(doc(db, "soal", soalId), soalData);
+      } else {
+        // Tambah soal baru
+        await addDoc(collection(db, "soal"), soalData);
+      }
+
       soalForm.reset();
+      document.getElementById("soalId").value = "";
       loadSoal();
     });
 
-    // ✅ Ambil soal dari Firestore
+    // Ambil soal dari Firestore
     async function loadSoal() {
       daftarSoal.innerHTML = "";
-      const querySnapshot = await getDocs(collection(db, "soal"));
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
+      const snapshot = await getDocs(collection(db, "soal"));
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
         const li = document.createElement("li");
-        li.textContent = `${data.pertanyaan} (Jawaban: ${data.jawaban})`;
+        li.classList.add("flex", "justify-between", "items-center");
+        li.innerHTML = `
+          <span>${data.pertanyaan} (Jawaban: ${data.jawaban})</span>
+          <span class="space-x-2">
+            <button data-id="${docSnap.id}" class="editBtn bg-blue-500 text-white px-2 py-1 rounded">Edit</button>
+            <button data-id="${docSnap.id}" class="deleteBtn bg-red-500 text-white px-2 py-1 rounded">Hapus</button>
+          </span>
+        `;
         daftarSoal.appendChild(li);
+      });
+
+      // Event edit
+      document.querySelectorAll(".editBtn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const docId = btn.dataset.id;
+          const docRef = doc(db, "soal", docId);
+          const docSnap = await getDocs(collection(db, "soal"));
+          const docData = (await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")).doc(db, "soal", docId)
+          // ambil data soal untuk form
+          const snapshot = await getDocs(collection(db, "soal"));
+          const data = (await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")).getDoc(docRef);
+          data.then(d => {
+            if(d.exists()){
+              document.getElementById("soalId").value = docId;
+              document.getElementById("pertanyaan").value = d.data().pertanyaan;
+              document.getElementById("opsiA").value = d.data().opsi.A;
+              document.getElementById("opsiB").value = d.data().opsi.B;
+              document.getElementById("opsiC").value = d.data().opsi.C;
+              document.getElementById("opsiD").value = d.data().opsi.D;
+              document.getElementById("jawaban").value = d.data().jawaban;
+              document.getElementById("penjelasan").value = d.data().penjelasan;
+            }
+          });
+        });
+      });
+
+      // Event hapus
+      document.querySelectorAll(".deleteBtn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          if(confirm("Yakin ingin menghapus soal ini?")){
+            await deleteDoc(doc(db, "soal", btn.dataset.id));
+            loadSoal();
+          }
+        });
       });
     }
 
