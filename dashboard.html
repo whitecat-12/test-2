@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -18,21 +18,22 @@
     <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
       <form id="soalForm" class="space-y-4">
         <input type="hidden" id="soalId">
+
+        <!-- Mata Pelajaran Dinamis -->
         <div>
           <label class="block font-semibold mb-1">Mata Pelajaran:</label>
-          <select id="mapel" class="w-full border p-2 rounded-lg focus:ring-1 focus:ring-teal-400" required>
-            <option value="Matematika">Matematika</option>
-            <option value="Fisika">Fisika</option>
-            <option value="Kimia">Kimia</option>
-            <option value="Biologi">Biologi</option>
-            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-            <option value="Bahasa Inggris">Bahasa Inggris</option>
-          </select>
+          <div class="flex gap-2 mb-2">
+            <input type="text" id="mapelInput" class="w-full border p-2 rounded-lg focus:ring-1 focus:ring-teal-400" placeholder="Ketik nama mata pelajaran">
+            <button type="button" id="tambahMapel" class="bg-teal-500 text-white px-3 py-2 rounded-lg hover:bg-teal-600 transition">+</button>
+          </div>
+          <div id="daftarMapel" class="flex flex-wrap gap-2"></div>
         </div>
+
         <div>
           <label class="block font-semibold mb-1">Pertanyaan:</label>
           <textarea id="pertanyaan" class="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400" placeholder="Gunakan $...$ untuk inline atau $$...$$ untuk display math" required></textarea>
         </div>
+
         <div>
           <label class="block font-semibold mb-1">Opsi Jawaban:</label>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -42,6 +43,7 @@
             <input type="text" id="opsiD" placeholder="D" class="border p-2 rounded-lg focus:ring-1 focus:ring-teal-400" required>
           </div>
         </div>
+
         <div>
           <label class="block font-semibold mb-1">Jawaban Benar:</label>
           <select id="jawaban" class="w-full border p-2 rounded-lg focus:ring-1 focus:ring-teal-400">
@@ -51,17 +53,19 @@
             <option value="D">D</option>
           </select>
         </div>
+
         <div>
           <label class="block font-semibold mb-1">Penjelasan:</label>
           <textarea id="penjelasan" class="w-full border p-3 rounded-lg focus:ring-1 focus:ring-teal-400" placeholder="Gunakan $...$ untuk inline atau $$...$$ untuk display math"></textarea>
         </div>
+
         <button type="submit" class="w-full bg-teal-600 text-white p-3 rounded-lg hover:bg-teal-700 transition font-semibold flex justify-center items-center gap-2">
           <i class="fa-solid fa-floppy-disk"></i> Simpan Soal
         </button>
       </form>
     </div>
 
-    <!-- Daftar soal dikelompokkan per mapel -->
+    <!-- Daftar soal -->
     <div id="daftarSoal" class="space-y-6"></div>
 
     <button id="logoutBtn" class="mt-6 w-full bg-red-500 text-white p-3 rounded-lg hover:bg-red-600 transition font-semibold flex justify-center items-center gap-2">
@@ -92,6 +96,12 @@
     const daftarSoal = document.getElementById('daftarSoal');
     const logoutBtn = document.getElementById('logoutBtn');
 
+    const mapelInput = document.getElementById("mapelInput");
+    const tambahMapelBtn = document.getElementById("tambahMapel");
+    const daftarMapelDiv = document.getElementById("daftarMapel");
+
+    let daftarMapel = [];
+
     onAuthStateChanged(auth, (user) => {
       if (!user) window.location.href = "login.html";
     });
@@ -101,11 +111,41 @@
       window.location.href = "login.html";
     });
 
+    // Tambah mata pelajaran
+    tambahMapelBtn.addEventListener("click", () => {
+      const namaMapel = mapelInput.value.trim();
+      if (!namaMapel) return;
+      if (daftarMapel.includes(namaMapel)) return alert("Mata pelajaran sudah ada!");
+
+      daftarMapel.push(namaMapel);
+
+      const span = document.createElement("span");
+      span.className = "bg-teal-100 text-teal-700 px-3 py-1 rounded-full flex items-center gap-2";
+      span.innerHTML = `${namaMapel} <i class="fa-solid fa-xmark cursor-pointer"></i>`;
+      
+      span.querySelector("i").addEventListener("click", () => {
+        daftarMapel = daftarMapel.filter(m => m !== namaMapel);
+        daftarMapelDiv.removeChild(span);
+      });
+
+      daftarMapelDiv.appendChild(span);
+      mapelInput.value = "";
+    });
+
     soalForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const soalId = document.getElementById("soalId").value;
+
+      if (daftarMapel.length === 0) {
+        alert("Silakan tambahkan minimal satu mata pelajaran!");
+        return;
+      }
+
+      // ambil mata pelajaran terakhir yang ditambahkan
+      const mapel = daftarMapel[daftarMapel.length - 1];
+
       const soalData = {
-        mapel: document.getElementById("mapel").value,
+        mapel: mapel,
         pertanyaan: document.getElementById("pertanyaan").value,
         opsi: {
           A: document.getElementById("opsiA").value,
@@ -131,8 +171,6 @@
     async function loadSoal() {
       daftarSoal.innerHTML = "";
       const snapshot = await getDocs(collection(db, "soal"));
-
-      // Kelompokkan soal per mapel
       const grouped = {};
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
@@ -182,7 +220,6 @@
           });
         });
 
-        // toggle accordion
         container.querySelector("div:first-child").addEventListener("click", () => {
           soalList.classList.toggle("hidden");
         });
@@ -190,7 +227,6 @@
         daftarSoal.appendChild(container);
       });
 
-      // Event listener edit dan hapus
       document.querySelectorAll(".editBtn").forEach(btn => {
         btn.addEventListener("click", async () => {
           const docId = btn.dataset.id;
@@ -198,7 +234,8 @@
           if (docSnap.exists()) {
             const data = docSnap.data();
             document.getElementById("soalId").value = docId;
-            document.getElementById("mapel").value = data.mapel;
+            mapelInput.value = data.mapel;
+            if (!daftarMapel.includes(data.mapel)) daftarMapel.push(data.mapel);
             document.getElementById("pertanyaan").value = data.pertanyaan;
             document.getElementById("opsiA").value = data.opsi.A;
             document.getElementById("opsiB").value = data.opsi.B;
